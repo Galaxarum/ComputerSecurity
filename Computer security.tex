@@ -1,5 +1,10 @@
 \documentclass{article}
-\usepackage{titlesec}
+\usepackage{titlesec, hyperref}
+\hypersetup{
+	colorlinks=true,
+	linkcolor=black,
+	urlcolor=blue,
+}
 \usepackage{mathtools, amsmath, amssymb}
 \usepackage{algorithm, algorithmic}
 \usepackage{tikz}
@@ -211,5 +216,22 @@ A function $H: X \to Y$ having $|X|=\infty$ but $|Y|=k \in \mathbb{N}$. This mea
 \item[second preimage attack resistance] $y: y \neq x \wedge H(x)=H(y)$, where $x$ is known/crafted
 \item[collision resistance] $x, y: H(x)=H(y)$  
 \end{description}
+
+\subsubsection{Attacks to Hash Functions}
+\paragraph{Preimage attack} Given an hash $h$, the attacker can find $x$ such that $H(x)=h$, or given $x$, they can find $y$ such that $H(x)=H(y)$. This can be done \underline{faster than brute force}.\\
+With $|Y|=n$, random collisions happen in $2^{n-1}$ cases
+\paragraph{Simplified collision attack} The attacker can generate $x,y:\:H(x)=H(y)$ \underline{faster than brute force}.\\
+Random collisions happen in $2^{n/2}$ cases (for the \href{https://en.wikipedia.org/wiki/Birthday_problem}{Birthday paradox}) 
+
+
+\subsection{Digital Signature}
+To digitally sign a message, we first hash the message. Then, we encrypt the hash with our private key.\\
+This however only guarantees that the sign was produced using our secret key, but someone may have stolen/guessed our private key.
+\subsubsection{PKI} Public Key Infrastructures is a service entitled to associate an identity to a key.\\
+To do so it uses a \underline{trusted} third party called \textbf{Certification Authority}. The CA signs files called \textbf{digital certificates}, which bind an identity  to a public key.
+\paragraph{Top-level CA} is a special CA that self-signs its certificates. It is a \underline{trusted element}.\\
+The Root CA can then sign certificates for other CAs. In practice, a Root CA is a real  world CA (the state, a regulatory organization...)
+\paragraph{Revocation} Signatures cannot be revoked, but certificates can be revoked  (declared invalid), for example because the private key has been broken.\\
+To do so, a Certificate Revocation List must exist for each CA
 
 \end{document}
