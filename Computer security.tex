@@ -1,11 +1,12 @@
 \documentclass{article}
 \usepackage{titlesec}
-\usepackage{mathtools}
+\usepackage{mathtools, amsmath, amssymb}
 \usepackage{algorithm, algorithmic}
 \usepackage{tikz}
 \usetikzlibrary{positioning,arrows, shapes}
 \newcommand{\sectionbreak}{\clearpage}
 \newcommand{\xor}{\oplus}
+\newcommand{\N}{\mathbb{N}}
 
 \tikzstyle{people}=[draw, fill=green!30, minimum size = 4em]
 \tikzstyle{message}=[draw, minimum size=5em, execute at begin node=\setlength{\baselineskip}{0pt}\tiny]
@@ -180,6 +181,7 @@ Key agreement issue
 \begin{description}
 \item[Substitution] Replace each byte with another (ex: caesar chipher)
 \item[Transposition] swap the values of given bits (ex: read vertically)
+\end{description}
 
 \subsection{Asymetric encryption}
 \begin{tikzpicture}[node distance=2.5cm];
@@ -197,6 +199,17 @@ Key agreement issue
 	\path[-] (alice) edge (secAlice);
 	\path[-] (bob) edge (secBob);
 \end{tikzpicture}
+Each user owns a private and a public key ($S_i,P_i$), where the public key is publicly available. The cryptoalgorithm is designed so that messages encrypted using $P_i$ can only be decrypted using $S_i$. This allows Alice to encrypt a message using $P_{bob}$, and Bob (and nobody else) to decrypt is using $S_{bob}$.
+Also, to prove its identity, Bob could send a message encrypted using $P_{bob}$. When Alice manages to decrypt is using $P_{bob}$, she can be sure that the message came from Bob
+
+
+\subsection{Hash functions}
+A function $H: X \to Y$ having $|X|=\infty$ but $|Y|=k \in \mathbb{N}$. This means $|Y|<|X|$, leading to \underline{collisions}: couples $x_1,x_2\in X: H(x_1)=H(x_2)$.
+\paragraph{Safery properties} are proberties needed to ensure robustness of $H$. In particular, it must be computationally infeasible to find:
+\begin{description}
+\item[preimage attack resistance] $x: H(x)=h$ with $h$ known/crafted
+\item[second preimage attack resistance] $y: y \neq x \wedge H(x)=H(y)$, where $x$ is known/crafted
+\item[collision resistance] $x, y: H(x)=H(y)$  
 \end{description}
 
 \end{document}
