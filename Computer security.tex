@@ -1,11 +1,17 @@
 \documentclass{article}
-\usepackage{titlesec}
-\usepackage{mathtools}
+\usepackage{titlesec, hyperref}
+\hypersetup{
+	colorlinks=true,
+	linkcolor=black,
+	urlcolor=blue,
+}
+\usepackage{mathtools, amsmath, amssymb}
 \usepackage{algorithm, algorithmic}
 \usepackage{tikz}
 \usetikzlibrary{positioning,arrows, shapes}
 \newcommand{\sectionbreak}{\clearpage}
 \newcommand{\xor}{\oplus}
+\newcommand{\N}{\mathbb{N}}
 
 
 \usepackage{arydshln}
@@ -186,6 +192,7 @@ Key agreement issue
 \begin{description}
 \item[Substitution] Replace each byte with another (ex: caesar chipher)
 \item[Transposition] swap the values of given bits (ex: read vertically)
+\end{description}
 
 \subsection{Asymetric encryption}
 \begin{tikzpicture}[node distance=2.5cm];
@@ -203,7 +210,36 @@ Key agreement issue
 	\path[-] (alice) edge (secAlice);
 	\path[-] (bob) edge (secBob);
 \end{tikzpicture}
+Each user owns a private and a public key ($S_i,P_i$), where the public key is publicly available. The cryptoalgorithm is designed so that messages encrypted using $P_i$ can only be decrypted using $S_i$. This allows Alice to encrypt a message using $P_{bob}$, and Bob (and nobody else) to decrypt is using $S_{bob}$.
+Also, to prove its identity, Bob could send a message encrypted using $P_{bob}$. When Alice manages to decrypt is using $P_{bob}$, she can be sure that the message came from Bob
+
+
+\subsection{Hash functions}
+A function $H: X \to Y$ having $|X|=\infty$ but $|Y|=k \in \mathbb{N}$. This means $|Y|<|X|$, leading to \underline{collisions}: couples $x_1,x_2\in X: H(x_1)=H(x_2)$.
+\paragraph{Safery properties} are proberties needed to ensure robustness of $H$. In particular, it must be computationally infeasible to find:
+\begin{description}
+\item[preimage attack resistance] $x: H(x)=h$ with $h$ known/crafted
+\item[second preimage attack resistance] $y: y \neq x \wedge H(x)=H(y)$, where $x$ is known/crafted
+\item[collision resistance] $x, y: H(x)=H(y)$  
 \end{description}
+
+
+\subsubsection{Attacks to Hash Functions}
+\paragraph{Preimage attack} Given an hash $h$, the attacker can find $x$ such that $H(x)=h$, or given $x$, they can find $y$ such that $H(x)=H(y)$. This can be done \underline{faster than brute force}.\\
+With $|Y|=n$, random collisions happen in $2^{n-1}$ cases
+\paragraph{Simplified collision attack} The attacker can generate $x,y:\:H(x)=H(y)$ \underline{faster than brute force}.\\
+Random collisions happen in $2^{n/2}$ cases (for the \href{https://en.wikipedia.org/wiki/Birthday_problem}{Birthday paradox}) 
+
+
+\subsection{Digital Signature}
+To digitally sign a message, we first hash the message. Then, we encrypt the hash with our private key.\\
+This however only guarantees that the sign was produced using our secret key, but someone may have stolen/guessed our private key.
+\subsubsection{PKI} Public Key Infrastructures is a service entitled to associate an identity to a key.\\
+To do so it uses a \underline{trusted} third party called \textbf{Certification Authority}. The CA signs files called \textbf{digital certificates}, which bind an identity  to a public key.
+\paragraph{Top-level CA} is a special CA that self-signs its certificates. It is a \underline{trusted element}.\\
+The Root CA can then sign certificates for other CAs. In practice, a Root CA is a real  world CA (the state, a regulatory organization...)
+\paragraph{Revocation} Signatures cannot be revoked, but certificates can be revoked  (declared invalid), for example because the private key has been broken.\\
+To do so, a Certificate Revocation List must exist for each CA
 
 \section{Authentication}
 \paragraph{Identification} an entity provides its identifier
