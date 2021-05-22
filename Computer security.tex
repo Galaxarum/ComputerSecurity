@@ -7,6 +7,12 @@
 \newcommand{\sectionbreak}{\clearpage}
 \newcommand{\xor}{\oplus}
 
+
+\usepackage{arydshln}
+\setlength{\dashlinedash}{0.5pt}
+\setlength{\dashlinegap}{3pt}
+\setlength{\arrayrulewidth}{0.5pt}
+
 \tikzstyle{people}=[draw, fill=green!30, minimum size = 4em]
 \tikzstyle{message}=[draw, minimum size=5em, execute at begin node=\setlength{\baselineskip}{0pt}\tiny]
 \tikzstyle{key}=[draw, fill=red!25, execute at begin node=\setlength{\baselineskip}{0pt}\tiny]
@@ -199,4 +205,98 @@ Key agreement issue
 \end{tikzpicture}
 \end{description}
 
+\section{Authentication}
+\paragraph{Identification} an entity provides its identifier
+\paragraph{Authentication} an entity provides \underline{a proof} that verifies its identity
+\begin{itemize}
+\item Unidirectional authentication
+\item Bidirectional authentication
+\end{itemize}
+\paragraph{Three factors authentication}
+\begin{description}
+\item[Something I know] low cost, easy to deploy, low effectiveness . Possible attack classes are snooping (so change the passwords), cracking (so use strong passwords) and guessing (so don't use your birthday)
+	\begin{itemize}
+		\item Password
+		\item PIN
+		\item Secret handshake
+	\end{itemize}
+\item[Something I have] reduces the impact of human factor, relatively low cost, high security. Hard to deploy, can be lost (so use a backup factor)
+	\begin{itemize}
+		\item Door key
+		\item Smart card
+	\end{itemize}
+\item[Something I am] High level of security, no extra hw needed. Hard to deploy, non-deterministic, invasive, can be cloned. Biological entities change, privacy can be an issue, users with disabilities may be restrained.
+	\begin{itemize}
+		\item DNA
+		\item Voice
+		\item Fingerprint
+		\item Face scan
+	\end{itemize}
+\end{description}
+\paragraph{Single Sign On} Like OAuth2: exploit an ad-hoc authentication server, accessible from many apps
+
+\section{Access control}
+\begin{itemize}
+\item Binary decision: allowed or denied
+\item Hard to scale (answers must be condensed in rules)
+\item Questions:
+	\begin{itemize}
+	\item How do we design the rules?
+	\item How do we express them?
+	\item How do we apply them?
+	\end{itemize}
+\end{itemize}
+\paragraph{Reference monitor} entity that encorces control access policies. Implemented by default in all modern kernels
+\begin{itemize}
+\item Tamper proof
+\item Cannot be bypassed
+\item Small enough to be verified/tested
+\end{itemize}
+\subsection{Access Control Models}
+\paragraph{Discretionary Access Control} Resource owner \underline{discretionarily} decides the access privileges of the resource. Default in all off-the-shelf OS.
+\subsubsection{Model}
+We need to model:
+\begin{description}
+\item[Subjects] Who can exercise privileges
+\item[Objects] On what privileges can be exercised
+\item[Actions] Which can be exercised
+\end{description}
+\begin{tabular}{|c|c|c|c|c:}
+\hline
+&\textbf{file1}&\textbf{file2}&\textbf{directory7}&\textbf{\dots}\\
+\hline
+\textbf{Alice}&Read&Read,Write,Own&&\dots\\
+\textbf{Bob}&Read,Write,Own&Read&Read,Write,Own&\dots\\
+\textbf{Charlie}&Read,Write&&Read&\dots\\
+\textbf{\dots}&\dots&\dots&\dots&$\ddots$\\
+\hdashline
+\end{tabular}
+\subsubsection{HRU model}
+\paragraph{Basic operations}
+\begin{itemize}
+\item Create/destroy subject $S$
+\item Create/destroy object $O$
+\item Add/remove permission from $[S,O]$ matrix
+\end{itemize}
+\paragraph{Transitions} atomic sequence of basic operations (as usual)
+\paragraph{Safety problem} Does it exist a transition that leaks a certain right into the access matrix?
+\subparagraph{Undecidable problem} becomes decidable if
+\begin{itemize}
+\item Mono-operational systems $\rightarrow$ useless
+\item Finite number of objects/subjects
+\end{itemize}
+\subsection{Common implementation}
+\begin{itemize}
+\item Reproduction of HRU models
+\item Sparse access matrix
+\item Authorizations table (records S-O-A triples)
+\item Access control list (record by colums: S-A per O)
+\item Capability List (records by row (O-A by S)
+\end{itemize}
+\subsection{Issues}
+\begin{itemize}
+\item Safety cannot be proven
+\item Coarse granularity (can't check data inside the objects)
+\item Scalability and management (each user can compromise security)
+\end{itemize}
 \end{document}
