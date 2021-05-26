@@ -12,7 +12,7 @@
 \newcommand{\sectionbreak}{\clearpage}
 \newcommand{\xor}{\oplus}
 \newcommand{\N}{\mathbb{N}}
-
+\usepackage{multirow,tabularx,makecell, subfig}
 
 \usepackage{arydshln}
 \setlength{\dashlinedash}{0.5pt}
@@ -24,6 +24,36 @@
 \tikzstyle{key}=[draw, fill=red!25, execute at begin node=\setlength{\baselineskip}{0pt}\tiny]
 \tikzstyle{enc} = [fill=blue!10, regular polygon, regular polygon sides=3,shape border rotate = 180]
 \tikzstyle{dec}=[fill=blue!10, regular polygon, regular polygon sides=3]
+
+\usepackage{xcolor,listings}
+
+\definecolor{mGreen}{rgb}{0,0.6,0}
+\definecolor{mGray}{rgb}{0.5,0.5,0.5}
+\definecolor{mPurple}{rgb}{0.58,0,0.82}
+\definecolor{backgroundColour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{CStyle}{
+    backgroundcolor=\color{backgroundColour},   
+    commentstyle=\color{mGreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{mGray},
+    stringstyle=\color{mPurple},
+    basicstyle=\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2,
+    language=C
+}
+
+\newcolumntype{M}[1]{>{\centering\arraybackslash}m{#1}}
+\newcolumntype{Y}[1]{>{\centering\arraybackslash}X{#1}}
 
 \author{Matteo Secco}
 \title{Computer Security}
@@ -335,4 +365,397 @@ We need to model:
 \item Coarse granularity (can't check data inside the objects)
 \item Scalability and management (each user can compromise security)
 \end{itemize}
+\subsection{Mandatory Access Control}
+\paragraph{Administrator} single entity establishing access privileges
+\paragraph{Secrecy levels} strictly ordered set of access classes
+\paragraph{Labels} used to classify objects
+\paragraph{Example}
+\begin{tabular}{|c|c|}
+\textbf{Secrecy levels}&
+\textbf{Labels}\\
+\hline
+Top Secret&Policy\\
+Secret&Energy\\
+For Official Use Only&Finance\\
+Unclassified&Atomic
+\end{tabular}
+\paragraph{Lattice} Touple $<$Level, Label$>$.
+\paragraph{Classification} obtained by a partial order relationship. ${C_1,L_1}\geq{C_2,L_2} \leftrightarrow C_1\geq C_2 \wedge L_2 \subseteq L_1$. Such relation is reflexive, transitive, antisymmetric.
+\subsubsection{BLP model}
+
+\paragraph{No read up} cannot read documents with higher security level than mine
+\paragraph{No write down} cannot write documents having a lower security level that mine (to avoid leaking of information)
+\paragraph{Discretionary Security Policy} An access matrix can be used to specify discretionay access control
+\paragraph{Tranquility} Secrecy levels of objects cannot change dinamically
+\section{Software Security}
+Good software engineering $\rightarrow$ meet requirements. Security is a \underline{non funcional} requirement. \textit{The rest of the lesson is history and not particularly interesting}
+
+
+\section{Buffer Overflow}
+\subsection{Memory stack}
+\begin{tabularx}{0.5\linewidth}{r|c|lX}
+\cline{2-3}
+High&Argc&\multirow{5}{*}{\makecell[l]{Statically allocated local variables \\ Function activation records\\ Grows down}}\\
+\cline{2-2}
+0xC0000000&Env pointer\\
+\cline{2-2}
+&\multirow{3}{*}{Stack}&\\
+&&\\
+0xBFF00000&&\\
+\cline{2-3}
+&$\downarrow$&\multirow{2}{*}{Unallocated memory}\\
+&$\uparrow$&\\
+\cline{2-3}
+&\multirow{2}{*}{Heap} &\multirow{2}{*}{\makecell[l]{Dynamically allocated data\\Grows up}}\\
+&&\\
+\cline{2-3}
+&\multirow{2}{*}{.data} & \multirow{2}{*}{Initialized data (ex: global variables)}\\
+&&\\
+\cline{2-3}
+& .bss & \multirow{1}{*}{Not initialized data (0s)}\\
+\cline{2-3}
+&\multirow{4}{*}{.text}&\multirow{4}{*}{Executable code (machine instructions)}\\
+&&\\
+&&\\
+0x0804800&&\\
+\cline{2-3}
+Low&Shared Libraries&\\
+\cline{2-2}
+\end{tabularx}
+\subsection{Registers}
+\paragraph{General purpose registers} execute common operations. Store data and addresses.
+\begin{description}
+\item[ESP] Contains the address of the last stack operation: \underline{Top of the stack}
+\item[EBP] Contains \underline{the base of the current funciton frame}
+\end{description}
+\paragraph{Segment} 16-bit reisters to keep track of segments and backward compatibility
+\paragraph{Control} control the execution/operation of the processor
+\begin{description}
+\item[EIP] Address of the next instruction to execute
+\end{description}
+\paragraph{Other} EFLAG: 1 bit register containing results of tests performed by the processor
+\subsection{Code structure}
+\begin{tabularx}{0.5\linewidth}{r|cc|l}
+\cline{2-3}
+\multirow{4}{*}{main()}&add&\dots , \dots &\\
+\cline{2-3}
+&\dots &&\\
+\cline{2-3}
+&call&0x8048484&$\leftarrow$ EIP\\
+\cline{2-3}
+&\dots &&\\
+\cline{1-3}
+\multirow{4}{*}{foo()}&ret&&0x80484ce\\
+\cline{2-3}
+&\dots &&\\
+\cline{2-3}
+&mov&\%esp,\%ebp&\\
+\cline{2-3}
+&push&\%ebp&0x8048484\\
+\cline{1-3}
+&\dots &&\\
+\cline{2-3}
+&mov&\%esp,\%ecx&\dots\\
+\cline{2-3}
+&pop&\%esi&0x80483c1\\
+\cline{2-3}
+Entry point$\rightarrow$&xor&\%ebp,\%ebp&0x80483c0\\
+\cline{2-3}
+\end{tabularx}
+\subsection{On function call}
+\paragraph{Before jumping tho called}
+\begin{itemize}
+\item The EIP is saved on the stack (so we know where to resume execution after return)
+\item The EBP is saved on the stack (so we can restore the memory)
+\item The ESP points to the cell after the saved EBP
+\end{itemize}
+\paragraph{Before the funciton returns}
+\begin{itemize}
+\item The saved EBP is restored
+\item The saved EBP is popped from the stack
+\item The return instructions uses the saved EIP to jump back to the caller
+\end{itemize}
+\pagebreak
+\subsection{Stack smashing}
+\begin{lstlisting}[style=CStyle]
+int foo(int a, int b){
+	int c = 14;
+	char buf[8];
+	
+	gets(buf);
+	
+	c = (a+b)*c;
+	return c;
+}
+\end{lstlisting}
+\[
+\rotatebox[origin=c]{-90}{Memory allocation}
+\left\downarrow
+\quad
+\begin{tabular}{|M{2cm}|}
+\hline
+\\
+\hline
+\dots\\
+\hline
+ArgN\\
+\hline
+\dots\\
+\hline
+Arg2\\
+\hline
+Arg1\\
+\hline
+\color{red} Saved EIP\\
+\hline
+Saved EBP\\
+\hline
+Var1\\
+\hline
+buf[4-7]\\
+\hline
+buf[0-3]\\
+\hline
+VarN\\
+\hline
+\end{tabular}
+\quad
+\right\uparrow
+\rotatebox[origin=c]{90}{Memory writing}
+\qquad
+\xrightarrow{\substack{\text{Typing}\\\color{red}\text{ABCDEFGHIJKLMNOPQRST}\\\text{on gets() [line 5]}}}
+\qquad
+\rotatebox[origin=c]{-90}{Memory allocation}
+\left\downarrow
+\quad
+\begin{tabular}{|M{2cm}|}
+\hline
+\\
+\hline
+\dots\\
+\hline
+ArgN\\
+\hline
+\dots\\
+\hline
+Arg2\\
+\hline
+Arg1\\
+\hline
+\color{red} QRST\\
+\hline
+\color{red} MNOP\\
+\hline
+\color{red} IJKL\\
+\hline
+\color{red} EFGH\\
+\hline
+\color{red} ABCD\\
+\hline
+VarN\\
+\hline
+\end{tabular}
+\quad
+\right\uparrow
+\rotatebox[origin=c]{90}{Memory writing}
+\]
+\paragraph{Possible jumping destinations}
+\begin{itemize}
+\item Environment variables
+\item Built-in functions
+\item Memory we can control
+	\begin{itemize}
+	\item The buffer itself!
+	\item Some other variable
+	\end{itemize}
+\end{itemize}
+\paragraph{The address of the buffer/EIP is hard to find!} An estimate can be retrieved using a debugger, but it's not precise. Need to have a bigger "landing strip"! NOP sleds are used for this
+
+\[
+\begin{tabular}{r|M{3cm}|}
+\cline{2-2}
+&\dots\\
+\cline{2-2}
+&Saved EIP\\
+\cline{2-2}
+&Saved EBP\\
+\cline{2-2}
+&Var1\\
+\cline{2-2}
+&VarN\\
+\cline{2-2}
+&buf[20-23]\\
+\cline{2-2}
+&buf[16-19]\\
+\cline{2-2}
+&buf[12-15]\\
+\cline{2-2}
+approx. address&buf[8-11]\\
+\cline{2-2}
+&buf[4-7]\\
+\cline{2-2}
+&buf[0-3]\\
+\cline{2-2}
+\end{tabular}
+\qquad
+\rightarrow
+\qquad
+\begin{tabular}{|M{3cm}|l}
+\cline{1-1}
+\dots\\
+\cline{1-1}
+approx address\\
+\cline{1-1}
+my code\\
+\cline{1-1}
+my code\\
+\cline{1-1}
+my code\\
+\cline{1-1}
+my code\\
+\hline
+0x90909090&\multirow{5}{*}{\makecell{Valid landing strip\\Each cell contains \\4 NOPs (0x90)\\Safety offset of +-4}}\\
+\cline{1-1}
+0x90909090\\
+\cline{1-1}
+0x90909090\\
+\cline{1-1}
+0x90909090\\
+\cline{1-1}
+0x90909090\\
+\hline
+\end{tabular}
+\]
+\paragraph{What to execute} Shellcode: code to spawn a (privileged) shell. It basically consists in executing execve("/bin/sh") 
+\subparagraph{Writing shellcode}
+\begin{enumerate}
+\item Write high-level code
+\item Compile and disassembly
+\item Analyse and clean up the assembly
+\item Extract the opcode
+\item Create the shellcode
+\end{enumerate}
+\subparagraph{Shell code example}
+\begin{lstlisting}[style=CStyle]
+int main(){
+	char* hack[2];
+	
+	hack[0]="/bin/sh";
+	hack[1]=NULL;
+	
+	execve(hack[0], &hack, &hack[1]);
+}
+\end{lstlisting}
+\subsection{Defending against Buffer Overflow}
+\paragraph{Source code level defence}
+\begin{itemize}
+\item Use safer libraries: strncpy instead of strcpy, for example
+\item Use languages with Dynamic Memory Management (like java) to make guessing the buffer address harder
+\end{itemize}
+\paragraph{Compiler level defence}
+\begin{itemize}
+\item Warnings from the compiler
+\item Randomized reordering of stack variables
+\item Canary: insert a control value between the saved EIP/EBP and the local variables, and check it to know if the stack has been compromised. 
+	\begin{description}
+	\item[Terminator canaries] made of '\textbackslash 0', which cannot be written by usual functions
+	\item[Random canaries] random bytes choosen at runtime
+	\item[Random XOR canaries] Random canaries, but XORed with part of the structure we want to protect (R=a random number, always the same$\wedge$X=something, like the EIP$\implies$ R$\xor$X$\xor$R$=$R$\xor$R$\xor$X$=$0$\xor$X$=$X
+	\end{description}
+\end{itemize}
+\paragraph{OS level defence}
+\begin{itemize}
+\item Non-executable stack (can still be breached by returning to standard libraries)
+\item Address space Layout Randomization: reposition the stack at each execution
+\end{itemize}
+
+
+\section{Format String Bugs}
+\paragraph{Format string} You know, the strings with "\%d" and similar in them
+\paragraph{Vulnerable example}
+\begin{lstlisting}[style=CStyle]
+#include <stdio.h>
+
+void test(char* arg){
+    char buf[250];
+    snprintf(buf, 250, arg);
+    printf("buffer: %s\n", buf);
+}
+
+int main(int argc, char* argv[]) {
+    test(argv[1]);
+    return 0;
+}
+\end{lstlisting}
+Two executions of the code above result in the following
+\begin{lstlisting}[language=bash]
+$ ./code "ciao"
+buffer: ciao
+
+$ ./code "%x %x %x"
+buffer: f59b87a0 d1772d80 d1772d80	#addresses!
+\end{lstlisting}
+
+\[
+	\color{blue}
+	\rotatebox[origin=c]{90}{read by \%i \%i \%i}\left\uparrow
+	\color{black}
+	\quad
+	\begin{tabularx}{\linewidth}{|Y|c|Y|}
+	\multicolumn{1}{c}{\multirow{2}{*}{\tiny snprintf(buf, 250, "\%i \%i \%i", \color{blue}a, b, c\color{black});}}&
+	\multicolumn{1}{c}{}&
+	\multicolumn{1}{c}{\multirow{2}{*}{\tiny snprintf(buf, 250, "\%i \%i \%i");}}\\
+	\multicolumn{1}{c}{}\\
+	\cline{1-1}\cline{3-3}
+	something more&&\makecell{\color{blue}something more}\\
+	\cline{1-1}\cline{3-3}
+	something else&&\makecell{\color{blue}something else}\\
+	\cline{1-1}\cline{3-3}
+	something&&\makecell{\color{blue}something}\\
+	\hline
+	\makecell{\color{blue}c}&\multirow{5}{*}{\rotatebox[origin=c]{-90}{snprintf() stack}}&\makecell{\color{red}\&"\%i \%i \%i"}\\
+	\cline{1-1}\cline{3-3}
+	\makecell{\color{blue}b}&&\makecell{\color{red}250}\\
+	\cline{1-1}\cline{3-3}
+	\makecell{\color{blue}a}&&\makecell{\color{red}\&buf}\\
+	\cline{1-1}\cline{3-3}
+	\makecell{\color{red}\&"\%i \%i \%i"}&\multicolumn{1}{c}{}&\multicolumn{1}{c}{}\\
+	\cline{1-1}
+	\makecell{\color{red}250}&\multicolumn{1}{c}{}&\multicolumn{1}{c}{}\\
+	\cline{1-1}
+	\makecell{\color{red}\&buf}&\multicolumn{1}{c}{}&\multicolumn{1}{c}{}\\
+	\cline{1-1}
+	\multicolumn{1}{c}{\textbf{Non vulnerable}}&\multicolumn{1}{c}{}&	\multicolumn{1}{c}{\textbf{Vulnerable}}
+	\end{tabularx}
+	\quad
+	\color{blue}
+	\right\uparrow\rotatebox[origin=c]{90}{read by \%i \%i \%i}
+	\color{black}
+\]
+
+\subparagraph{Specific access}
+\begin{lstlisting}[style=CStyle]
+#include <stdio.h>
+
+void test(char* arg){
+    char buf[250];
+    snprintf(buf, 250, arg);
+    printf("buffer: %s\n", buf);
+}
+
+int main(int argc, char* argv[]) {
+    test(argv[1]);
+    return 0;
+}
+\end{lstlisting}
+Two executions of the code above result in the following
+\begin{lstlisting}[language=bash]
+$ ./code "%x %x %x"
+buffer: f59b87a0 d1772d80 d1772d897
+
+
+$ ./code "%3\$x"
+buffer: d1772d897	#the third!
+\end{lstlisting}
+We can use loops to find interesting positions (design the vulnerability), and then aim for those positions directly (deploy it).
 \end{document}
