@@ -649,6 +649,7 @@ int main(){
 }
 \end{lstlisting}
 \subsection{Defending against Buffer Overflow}
+\label{sec:defending buffer overflow}
 \paragraph{Source code level defence}
 \begin{itemize}
 \item Use safer libraries: strncpy instead of strcpy, for example
@@ -815,7 +816,66 @@ Because using \%c we can only increase, and we must perform the writing twice \u
 \item Word with lower \underline{absolute value}
 \item Word with higher \underline{absolute value}
 \end{enumerate}
-\paragraph{New vulnerable string 1):} use case: 0x\color{red}4545\color{blue}4040 \color{black}(\color{red}first half \color{black} $>$ \color{blue} second half\color{black})\\
+\paragraph{New vulnerable string 1:} use case: 0x\color{red}4545\color{blue}4040 \color{black}(\color{red}first half \color{black} $>$ \color{blue} second half\color{black})\\
+\begin{adjustwidth}{-3cm}{-3cm}
+\centering
+$\underbrace{
+	\color{green}<\text{tgt}>
+	<\text{tgt+2}>
+}_{\substack{\text{target addresses placed}\\\text{ on the stack to be read}\\\text{as argument of \%\dots n}\\\text{(bytes in reverse order)}}}
+\overbrace{
+	\color{black}\%
+	\underbrace{
+		\color{blue} <\text{low}\_\text{val}-\text{\#printed}>
+	}_{
+		\color{blue} 0\text{x}4040 - 8\color{black}
+	}
+	\color{black} c
+}^{
+	\substack{
+		\text{use padding to write }\\
+		\text{the desired number of chars}
+	}
+}
+\overbrace{
+	\%
+	\underbrace{
+		\color{blue} <\text{stack}\_
+		\text{offset}>
+	}_{\text{point to \color{red}}<
+	\text{address}>}
+	\color{black} \$hn
+}^{
+	\text{write to }<\text{address}>\text{ using \%hn}
+}
+\overbrace{
+	\color{black} \% 
+	\underbrace{
+		\color{red} <\text{high}\_\text{val}-\text{low}\_\text{val}>
+	}_{
+		\color{red} 0\text{x}4545-\text{x}4040
+	} 
+	\color{black} c
+}^{
+	\substack{
+		\text{use padding to write }\\
+		\text{the desired number of chars}
+	}
+}
+\overbrace{
+	\color{black} \%
+	\underbrace{
+		\color{red} <\text{stack}\_\text{offset+1}>
+	}_{
+		\text{point to}<\text{address+2}>
+	}
+	\color{black} \$n
+}^{
+	\text{write to}<\text{address+2 using \%hn}>
+}
+$
+\end{adjustwidth}
+\paragraph{New vulnerable string 2:} use case: 0x\color{blue}4040\color{red}4545 \color{black}(\color{blue}first half \color{black} $<$ \color{red} second half\color{black})\\
 \begin{adjustwidth}{-3cm}{-3cm}
 \centering
 $\underbrace{
@@ -874,4 +934,16 @@ $\underbrace{
 }
 $
 \end{adjustwidth}
+\subsection{Generalization} print functions are not the only functions affected by the problem. All functions with the following properties are vulnerable:
+\begin{itemize}
+\item Are \underline{variadic functions}: have a variable number of parameters resolved at runtime from the stack
+\item Have a mechanis to read/write arbitrary locations
+\item The user can control them
+\end{itemize}
+\subsection{Defending agains Format String bugs}
+\begin{itemize}
+\item Most of the defenses explained in \ref{sec:defending buffer overflow}
+\item The vulnerable functions may be patched, for example by specifying the expected number of parameters
+\item Warnings from compilers
+\end{itemize}
 \end{document}
