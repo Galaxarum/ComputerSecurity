@@ -1,5 +1,6 @@
 \documentclass{article}
-\usepackage{titlesec, hyperref}
+\usepackage{titlesec}
+\usepackage[colorlinks=true,urlcolor=blue,linkcolor=blue]{ hyperref}
 \hypersetup{
 	colorlinks=true,
 	linkcolor=black,
@@ -50,6 +51,73 @@
     showtabs=false,                  
     tabsize=2,
     language=C
+}
+
+%Customize a bit the look
+\lstset{ %
+backgroundcolor=\color{white}, % choose the background color; you must add \usepackage{color} or \usepackage{xcolor}
+basicstyle=\footnotesize, % the size of the fonts that are used for the code
+breakatwhitespace=false, % sets if automatic breaks should only happen at whitespace
+breaklines=true, % sets automatic line breaking
+captionpos=b, % sets the caption-position to bottom
+commentstyle=\color{mygreen}, % comment style
+deletekeywords={...}, % if you want to delete keywords from the given language
+escapeinside={\%*}{*)}, % if you want to add LaTeX within your code
+extendedchars=true, % lets you use non-ASCII characters; for 8-bits encodings only, does not work with UTF-8
+frame=single, % adds a frame around the code
+keepspaces=true, % keeps spaces in text, useful for keeping indentation of code (possibly needs columns=flexible)
+keywordstyle=\color{blue}, % keyword style
+% language=Octave, % the language of the code
+morekeywords={*,...}, % if you want to add more keywords to the set
+numbers=left, % where to put the line-numbers; possible values are (none, left, right)
+numbersep=5pt, % how far the line-numbers are from the code
+numberstyle=\tiny\color{mygray}, % the style that is used for the line-numbers
+rulecolor=\color{black}, % if not set, the frame-color may be changed on line-breaks within not-black text (e.g. comments (green here))
+showspaces=false, % show spaces everywhere adding particular underscores; it overrides 'showstringspaces'
+showstringspaces=false, % underline spaces within strings only
+showtabs=false, % show tabs within strings adding particular underscores
+stepnumber=1, % the step between two line-numbers. If it's 1, each line will be numbered
+stringstyle=\color{mymauve}, % string literal style
+tabsize=2, % sets default tabsize to 2 spaces
+title=\lstname % show the filename of files included with \lstinputlisting; also try caption instead of title
+}
+%END of listing package%
+ 
+\definecolor{darkgray}{rgb}{.4,.4,.4}
+\definecolor{purple}{rgb}{0.65, 0.12, 0.82}
+\definecolor{mygreen}{rgb}{0,0.6,0}
+\definecolor{mygray}{rgb}{0.5,0.5,0.5}
+\definecolor{mymauve}{rgb}{0.58,0,0.82}
+ 
+%define Javascript language
+\lstdefinelanguage{JavaScript}{
+keywords={typeof, new, true, false, catch, function, return, null, catch, switch, var, if, in, while, do, else, case, break},
+keywordstyle=\color{blue}\bfseries,
+ndkeywords={class, export, boolean, throw, implements, import, this},
+ndkeywordstyle=\color{darkgray}\bfseries,
+identifierstyle=\color{black},
+sensitive=false,
+comment=[l]{//},
+morecomment=[s]{/*}{*/},
+commentstyle=\color{purple}\ttfamily,
+stringstyle=\color{red}\ttfamily,
+morestring=[b]',
+morestring=[b]"
+}
+ 
+\lstset{
+language=JavaScript,
+extendedchars=true,
+basicstyle=\footnotesize\ttfamily,
+showstringspaces=false,
+showspaces=false,
+numbers=left,
+numberstyle=\footnotesize,
+numbersep=9pt,
+tabsize=2,
+breaklines=true,
+showtabs=false,
+captionpos=b
 }
 
 \newcolumntype{M}[1]{>{\centering\arraybackslash}m{#1}}
@@ -945,5 +1013,75 @@ $
 \item Most of the defenses explained in \ref{sec:defending buffer overflow}
 \item The vulnerable functions may be patched, for example by specifying the expected number of parameters
 \item Warnings from compilers
+\end{itemize}
+
+\section{Web application security}
+\subsection{Introduction}
+\paragraph{Client is never trustworthy} any client may be an attacker, so we need to filter carefully what it sends us
+\paragraph{Filtering is hard} 
+\subsection{Filtering} can be done is 3 ways
+\begin{description}
+\item[Whitelisting] only allow what you expect
+\item[Blacklisting] Discard bad stuff
+\item[Escaping] Transform special/dangerous characters into something less dangerous
+\end{description}
+\subsection{Cross site scripting (XSS)}
+\paragraph{XSS} client-side code is injected into the web page; for example posting the following comment:
+\begin{lstlisting}[language=JavaScript]
+<script>
+	alert('Javascript code executed!');
+</script>
+\end{lstlisting}
+The alert will appear when the comment is loaded.
+\subsubsection{Types of XSS:}
+\begin{description}
+\item[Stored XSS] The attacker input is stored on the target server into a database (for example a blog comment). The victim retrieves the stored code without the data been made safe to render.
+\item[Reflected XSS] 
+The following script is present in the vulnerable page:
+\begin{lstlisting}[language=JavaScript]
+url = url.searchParams.get('variable');
+request = new XMLHttpRequest();
+request.open('GET', url, true);
+request.send(null);
+//...
+\end{lstlisting}
+The attacker sends the victim (in an email, embedded in another website) the following link:\\
+\url{example.com/?variable=$<$script$>$alert('pawned!')$<$/script$>$}
+\item[Dom-based XSS] Vulnerable script on the site:
+\begin{lstlisting}[language=JavaScript]
+document.write('<b>Current URL: </b>'+document.baseURI);
+\end{lstlisting}
+Malicious URL:\\
+\url{example.com/#<script>alert('pwned')</script>}
+\end{description}
+\subsubsection{What XSS can do:}
+\begin{itemize}
+\item Cookie theft
+\item Session hijack
+\item Session manipulation
+\item Execution of a fraudolent transaction
+\item Snooping private information
+\item Drive by download (make the user download malicious programs without wanting/knowing)
+\item Bypass same-origin policy
+\end{itemize}
+\paragraph{Same Origin Policy} all client-side code fro origin \textbf{A} should only be able to access data from \textbf{A}
+\subparagraph{Has issues with browser extensions and CORS (literal exceptions to SOP)}
+\subsubsection{Content Security Policy}
+\paragraph{CSP:} a W3C specification to inform the browser on what to trust and what not, sent from the server to the client in an header:\\
+Content-Security-Policy: script-src 'self' http://myurl.it
+\subparagraph{(some) available directives}
+\begin{description}
+\item[script-src] load client code only from listed origins
+\item[form-action] only listed endpoints are valid to submit data to
+\item[frame-ancestors] lists other sources allowed to embed the currend page in them (into frames or applets)
+\item[img-src] list of origins from which images can be loaded
+\item[style-src] load css only from listed origins
+\end{description}
+\subparagraph{Issues}
+\begin{itemize}
+\item Must be very strict to work
+\item Must be written (mostly) manually
+\item Must be kept up to date
+\item Can have issues with browser extensions
 \end{itemize}
 \end{document}
