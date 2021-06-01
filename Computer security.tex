@@ -1084,4 +1084,96 @@ Content-Security-Policy: script-src 'self' http://myurl.it
 \item Must be kept up to date
 \item Can have issues with browser extensions
 \end{itemize}
+
+\subsection{SQL injection}
+\subsubsection{Breaking authentication}
+Say we have the following code, server side:
+\begin{lstlisting}[language=Java]
+public void login(String username, String password){
+	SqlCommand cmd= new SqlCommand(String.Format(
+		"SELECT * FROM Users
+		WHERE username='{0}' AND password='{1}';",
+		username, password);
+	SqlDataReader reader = cmd.ExecuteReader();
+	if(reader.HasRows()){
+		grantAuthentication();
+	}else{
+		rejectAuthentication();
+	}
+}
+\end{lstlisting}
+The expected behaviour whould be for example the user inserting username="matteosecco" and password="s3cre3t!", which would result in the following query:
+\begin{lstlisting}[language=SQL, showspaces=false]
+SELECT * FROM Users
+WHERE username='matteosecco' AND password='s3cr3t!';
+\end{lstlisting}
+Instead, an attacker could type "matteosecco';--" as username and anything (say "lol") as password. As "--" is a comment in sql, the resulting query would be:
+\begin{lstlisting}[language=SQL]
+SELECT * FROM Users
+WHERE username='matteosecco';--' AND password='lol';
+\end{lstlisting}
+Allowing the attacker to login even without knowing the password! \\
+But it can be even worse: the attacker may use "' OR '1'='1';--" as password, effectively bypassing the username too:
+\begin{lstlisting}[language=SQL]
+SELECT * FROM Users
+WHERE username='' OR '1'='1';--' AND password='lol'
+\end{lstlisting}
+
+\subsubsection{Loading data from other tables}
+Suppose the server somewhere returns the result of the following query, where the string is a user parameter:
+\begin{lstlisting}[language=SQL]
+SELECT name, phone, address FROM Users
+WHERE Id='userinput';
+\end{lstlisting}
+An attacker could obviously do
+\begin{lstlisting}[language=SQL]
+SELECT name, phone, address FROM Users
+WHERE Id='' OR '1'='1';--';
+\end{lstlisting}
+To retrieve the data of all Users. But a more interesting injection allows to load the content of other tables: say the input is "' UNION ALL SELECT name, creditCardNumber, CCV2 from CreditCardTable;--". The resulting query would be:
+\begin{lstlisting}[language=SQL]
+SELECT name, phone, address FROM Users
+WHERE Id='' UNION ALL SELECT name, creditCardNumber, CCV2 from CreditCardTable;--';
+\end{lstlisting}
+And it would result in returning all the credit card infos stored! (assuming the union works $\rightarrow$ the column names/forats are compatible
+
+\subsubsection{Manipulating INSERTs}
+Assume we have the following schema to track exam results:
+\begin{lstlisting}[language=SQL]
+CREATE TABLE users (
+	id INTEGER PRIMARY KEY,
+	user VARCHAR(128),
+	password VARCHAR(128),
+	result VARCHAR
+);
+
+CREATE TABLE results (
+	id INTEGER PRIMARY KEY,
+	username VARCHAR(128),
+	grade VARCHAR
+);
+\end{lstlisting}
+And a single query in the server allowing to give 18 to a custom user (having the username as a parameter):
+\begin{lstlisting}[language=SQL]
+INSERT INTO results VALUES (NULL, 'matteosecco', '18');	
+\end{lstlisting}
+I could easly get 30L by inserting "matteosecco', '30L'),--":
+\begin{lstlisting}[language=SQL]
+INSERT INTO results VALUES (NULL, 'matteosecco', '30L');--', '18');	
+\end{lstlisting}
+I could also give 30L to a friend of mine:
+\begin{lstlisting}[language=SQL]
+INSERT INTO results VALUES (NULL, 'matteosecco', '30L'),(NULL, 'gianlucaguidotti','30L');--', '18');	
+\end{lstlisting}
+Or I could use it to gain access to privileged data (assuming I have some way to read the data I'm inserting):
+
+\begin{lstlisting}[language=SQL]
+INSERT INTO results VALUES (NULL, 'matteosecco', (SELECT password from USERS where user='admin')),--', '18');	
+\end{lstlisting}
+\subsubsection{Blind queries} Some queries, such as a login one, do not display the result to the user. We can infer the result, or some of its properties, by the resulting behaviour.
+\subsubsection{Defending}
+\paragraph{Input sanitization} validation and filtering of the user input
+\paragraph{Prepared statements} used instead of built query strings, use variable placeholders instead of concatenation and can effectively check the variable format
+\paragraph{Not using table names as field names} it causes information leakage!
+\paragraph{Limit query privileges} only allow some users to execute some queries
 \end{document}
