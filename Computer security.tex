@@ -1253,7 +1253,78 @@ So an attacker can send a lot of SYN packets from (virtually) different sources 
 \paragraph{ICMP} communication protocol to send status messages (connection failed, service not available...)
 \paragraph{SMURF} send an ICMP request having src IP spoofed to match the victim's address. The victim will be flooded with ICMP responses.
 
-\subsection{Network level Sniffing}
+\subsection{Sniffing}
+\paragraph{Promiscuous mode of network card} passes to the OS any packet read on the wire
+\subsubsection{ARP spoofing} 
+\paragraph{ARP} protocol to map IP addresses to MAC addresses. No authentication: first to come, first trusted. Replies are cached.
+\begin{description}
+\item[request] where is 192.168.1.15?
+\item[reply] 192.168.1.15 is at b4:e8:b0:c9:81:03
+\end{description}
+\paragraph{ARP spoofing:} send ARP replies leading to the a controlled machine
+\subparagraph{Mitigation}
+\begin{itemize}
+\item Check if the response is invalid (conflicts)
+\item Add a SEQ/ID number in the request
+\end{itemize}
+\subsubsection{CAM filling} filling the CAM tables of a switch (MAC/port tables of switches) so to force the switch to broadcast any packet
+\paragraph{Mitigation:} PORT security (CISCO term)
 
-\subsection{Network level Spoofing}
+\subsubsection{Abusing the Spanning Tree Protocol}
+Switches decide how to build the ST by exchenging Bridge Protocol Data Unit packets. BPDU are not authenticated $\rightarrow$ can change the tree shape how the attacker prefer
+
+
+\subsection{Spoofing}
+\subsubsection{IP address spoofing}
+\subparagraph{UDP/ICPM:} straight forward: no sequence numbers. Need to sniff/perform ARP spoofing to see the replies
+\subparagraph{TCP:} has sequence numbers. The initial one is semi-random. Need to
+\begin{itemize}
+\item Guess the Initial Sequence Number (ISN)
+\item DoS the legit receiver, or it might send a RST
+\end{itemize}
+
+\subsubsection{TCP session hijacking} take over an \underline{existing} TCP session. If C is the attacker:
+\begin{enumerate}
+\item C sniffs the conversation between A and B, recording the sequence numbers
+\item C disrupts A's connection (DoS). A only sees a random disruption of service.
+\item C takes over the dialogue with B by spoofing A's address and using the sniffed SNs. B cannot suspect anything.
+\end{enumerate}
+
+\subsubsection{Man in the Middle} Vast category of attacks, where the attacker talks to the client impersonating the server and vice versa.
+
+\subsubsection{DnS (cache) poisoning}
+\paragraph{Actors:}
+\begin{itemize}
+\item Attacker C
+\item Victim DNS server (non authoritative) V
+\item Authoritative DNS server A
+\end{itemize}
+\paragraph{Steps:}
+\begin{enumerate}
+\item C sends V a recursive DNS query for the domain to poison
+\item V tries to contact A to get a value to cache
+\item C spoofs the connection impersonating A
+\item C sends the DNS response he wants (the IP address of its own, malicious server). He must use the correct ID of the DNS query
+	\begin{itemize}
+	\item Bruteforce
+	\item Guess
+	\item Sniff
+	\end{itemize}
+\item V stores the crafted response in the cache
+\item Any user contacting V will receive V's malicious IP
+\end{enumerate}
+\subsubsection{DHCP poisoning}
+DHCP is unauthenticated. By intercepting DHCP requests, an attacker can set:
+\begin{itemize}
+\item IP address
+\item DNS address
+\item Default gateway
+\end{itemize}
+and so basically get control of any connection of the victim
+\subsubsection{ICMP Redirect}
+Have the host update its routing table, by telling him that a better route exists (passing by a machine controlled by the attacker, of course!)\\
+This is done by sending a forged ICMP redirect packet: the attacker needs to intectept a packet of the original connection $\rightarrow$ must be in the same network\\
+ICPM redirects are OS dependent 
+
+\section{Secure Network Architectures}
 \end{document}
