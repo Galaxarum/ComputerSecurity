@@ -1176,4 +1176,84 @@ INSERT INTO results VALUES (NULL, 'matteosecco', (SELECT password from USERS whe
 \paragraph{Prepared statements} used instead of built query strings, use variable placeholders instead of concatenation and can effectively check the variable format
 \paragraph{Not using table names as field names} it causes information leakage!
 \paragraph{Limit query privileges} only allow some users to execute some queries
+
+\subsection{Cookies}
+%TODO
+Well, already know them
+
+\subsection{Cross-Site Request Forgery}
+Make the victim's client execute unwanted actions on another platform it is currently authenticated into.\\
+Bank page:
+\begin{lstlisting}[language=HTML]
+<form method="POST" action="/transfer.php">
+	<h3>Transfer money</h3>
+	Recipient: <input type="text" id="user" name="to">
+	Amount: <input type="number" id="amount" name="amnt">
+	<button type="submit">Confirm</button>
+</form>
+\end{lstlisting}
+Malicious site:
+\begin{lstlisting}[language=HTML]
+<form action="https://bank.com/transfer.php" id="evil" style="display: none;" method="POST">
+	<input type="hidden" value="50000" name="amnt">
+	<input type="hidden" value="matteo.secco" name="to">
+	<input type="submit">
+</form>
+<script>document.evil.submit();</script>
+\end{lstlisting}
+\subsubsection{Defending}
+\paragraph{CSRF Token}
+\subparagraph{Properties}
+\begin{itemize}
+\item Random challenge token
+\item Unique per user session
+\item Regenerated for each request
+\item Sent to server for validation
+\item \underline{Not stored in cookies} (added to the HTML page for example)
+\end{itemize}
+\paragraph{Same Site Cookies}
+Don't sendd any session cookies with requests originating from different websites. Specified by setting a cookie:
+\begin{description}
+\item[SameSite=strict] Don't send cookies for \underline{any} cross-site usage
+\item[SameSite=lax] sent cookies for navigation only (prevent for POSTs, images, frames...)
+\end{description}
+
+\section{Network protocol attacks}
+\subsection{Denial of Service} 
+\paragraph{Goal:} make the service unavailable to legitimate users
+\subsubsection{Killer packets} send specific packets to a machine to make it crash/keep it busy
+\paragraph{Ping of death} Specific ICMP echo request which exploits a memory error in the protocol implementation:
+\begin{lstlisting}[language=bash]
+#From windows
+ping -I 65527 192.168.1.15
+#From linux
+ping -s 65527 192.168.1.15
+\end{lstlisting}
+\paragraph{Teardrop}
+Exploit vulnerabilities in the TCP reassembly (putting packages toghether). While reassembling packages with overlapping offsets, the kernel may freeze/crash
+\paragraph{Land attack} Packets having
+\begin{itemize}
+\item src IP==dst IP
+\item SYN=1
+\end{itemize}
+could loop forever and lock a TCP/IP stack. First found on Windows 95, Windows XP still vulnerable. 
+\subsubsection{SYN flooding}
+SYN packets are the first ones of a TCP handshake. In order for the handshake to work, the sender must be stored in memory until the handshake is completed (or for a given amount of time).\\
+However, the IP src can be arbitrarly changed from an attacker!\\
+So an attacker can send a lot of SYN packets from (virtually) different sources (\textbf{spoofed source addresses}), filling the buffer to store received SYNs, and preventing the server from accepting legit SYN requests
+\paragraph{Defending: SYN cookies} Do not store SYNs in memory. Use a challenge-response mechanism to verify the connection.
+\subsection{Distributed DoS}
+\subsubsection{Botnets} Complex attack executed in multiple steps:
+\begin{itemize}
+\item Infect a lot of computers and gain controls over them (they become bots)
+\item Install a Command\&Control infrastructure on them in order to be able to command them
+\item When the time comes, control the bots to issue the malicious attack (spam, phishing, ping of death)...
+\end{itemize}
+\subsubsection{Smurf}
+\paragraph{ICMP} communication protocol to send status messages (connection failed, service not available...)
+\paragraph{SMURF} send an ICMP request having src IP spoofed to match the victim's address. The victim will be flooded with ICMP responses.
+
+\subsection{Network level Sniffing}
+
+\subsection{Network level Spoofing}
 \end{document}
