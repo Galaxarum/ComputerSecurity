@@ -1327,4 +1327,67 @@ This is done by sending a forged ICMP redirect packet: the attacker needs to int
 ICPM redirects are OS dependent 
 
 \section{Secure Network Architectures}
+\paragraph{Firewall} a system that verifies \underline{all} and \underline{only} the packets flowing through it ($\rightarrow$ powerless against insider attacks or unchecked paths). It's main funcitons are:
+\begin{itemize}
+\item IP packet filtering
+\item NAT
+\end{itemize}
+Firewalls are computers $\rightarrow$ they can be attacked as well. However, usually they are embedded systems with only a firmware $\rightarrow$ small attack surface
+\paragraph{Firewall Rules} The firewall blindly applies the specified rules: bad rules $\rightarrow$ no protection. The rules are written to implement an higher-level security policy. The policy must be build on a \underline{default deny base} (to avoid the issues of blackinsting)
+\paragraph{Types of firewalls}
+\begin{description}
+\item[Network layer] 
+	\begin{itemize}
+	\item Packet filters firewall
+	\item Stateful packet filters firewall
+	\end{itemize}
+\item[Application layer]
+	\begin{itemize}
+	\item Circuit level firewalls
+	\item Application proxies
+	\end{itemize}
+\end{description}
+
+\subsection{Packet filters} 
+Process packet by packet. Stateless $\rightarrow$ no tracking of TCP connections, no payload inspections. Inspect IP \& TCP headers, looking to:
+\begin{itemize}
+\item SRC IP
+\item DST IP
+\item Protocol type
+\item IP options
+\end{itemize}
+\paragraph{Implementation} a table:\\
+\begin{adjustwidth}{-3cm}{-3cm}
+\begin{tabular}{|c|c|c|c|c|c|c|c|}
+\hline
+\textbf{Firewall}&\textbf{Src IP}&\textbf{Src PORT}&
+\textbf{Direction}&\textbf{Dst IP}&
+\textbf{Dst PORT}&\textbf{Policy}&
+\textbf{Description}\\
+\hline\hline
+FW1		&ANY		&ANY		&Inet$\rightarrow$Local	&ANY		&ANY		&Deny	&Default deny\\
+\hline
+FW1		&ANY		&ANY		&Inet$\rightarrow$Local	&ANY		&ANY		&Deny	&Default deny\\
+\hline
+FW1		&ANY		&ANY		&Inet$\rightarrow$Local	&WS$\_$IP	&80		&Allow		&Allow http to web server\\
+\hline
+FW1		&WS$\_$IP	&80		&Local$\rightarrow$Inet	&ANY		&ANY		&ALLOW	&	\makecell{Allow outgoing http\\ from the web server.\\\color{red}NOT NEEDED}\\
+\hline
+&&&&&&&\\
+\hline
+\end{tabular}
+\end{adjustwidth}
+
+\subsection{Stateful Packet Filters}
+Packet filter, plus keep track of the TCP state machine. This allows to track connections, but brings performance issues (the \# of open connections becomes a complexity variable)
+\paragraph{Advantages}
+\begin{itemize}
+\item Better expressiveness
+\item Tracking connections
+\item Reconstruct application-layer protocols
+\item Application layer filtering
+\end{itemize}
+
+
+
 \end{document}
