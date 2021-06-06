@@ -1379,7 +1379,7 @@ FW1		&WS$\_$IP	&80		&Local$\rightarrow$Inet	&ANY		&ANY		&ALLOW	&	\makecell{Allow
 \end{adjustwidth}
 
 \subsection{Stateful Packet Filters}
-Packet filter, plus keep track of the TCP state machine. This allows to track connections, but brings performance issues (the \# of open connections becomes a complexity variable)
+Packet filter, plus keep track of the TCP state machine. This allows to track connections, but brings performance issues (the \# of open connections becomes a complexity variable$\rightarrow$possible DOS vulnerability: memory consumption)
 \paragraph{Advantages}
 \begin{itemize}
 \item Better expressiveness
@@ -1388,6 +1388,152 @@ Packet filter, plus keep track of the TCP state machine. This allows to track co
 \item Application layer filtering
 \end{itemize}
 
+\subsection{NAT}
+\paragraph{TCP} track the session
+\paragraph{UDP} no session. The idea of session is simulated using IP correspondence and a timeout (possible DOS vulnerability: memory consumption for tracking)
+\subsubsection{Application-layer inspection for NAT} Some protocols transmit network info (eg: port numbers) at application layer. For example, FTP opens a connection over a dynamic port. Stateful firewalls must take this into account, \textbf{temporarly} allowing the connection
+\subsection{Deep Inspection} is the ability of modern firewalls to inpect the content of the packet, looking for malawares, attack patterns and so on
+\subsection{Application proxies} Clients connect \textbf{to the proxy}, which can inspect/validate/manipulate the content of the packet before transmitting it to the client. \underline{protocol-specific}
+\subsection{Secure architecture}
+\paragraph{DMZ} a semi-public zone, containing public servers (web, mail...). Separated with a firewall from the internet, and with another firewall from the intranet. Should not contain any critical data
+\subsection{VPN} a VPN is an encrypted connection traversing a public network. On the DMZ/intranet bound is the VPN server, responsible of decrypting the packets. 
+\paragraph{Full tunnelling} Every packet goes through the VPN tunnel. 100\% as if the client were into the intranet. Possible traffic multiplication (some packets do not need to pass by the intranet)
+\paragraph{Spit tunnelling} only the traffic directed to the corporate network passes by the VPN. More efficient, less control.
+\paragraph{Technologies}
+\begin{description}
+\item[PPTP] Point to point tunneling protocol. Proprietary of Microsoft, variant of PPP with added authentication and crypthography.
+\item[IPSEC] security extension of IPv6 backported to IPv4, featuring added authentication and crypthography at IP layer.
+\section{Security Protocols: TLS and SET}
+Seems useless %TODO
+\section{Malicious Software}
+\paragraph{Malaware} Crasis of \textit{Malicious software}: code written to intentionally violate a security policy
+\paragraph{Malware categories}
+\begin{description}
+\item[Virus] Code that self-propagates by infecting other files (usually executables). They are \underline{not standalone programs}
+\item[Worms] Program that self-propagate by exploiting host vulnerabilities or by social engineering
+\item[Trojan horses] Apparently benign programs hiding a malicious functionality
+\end{description}
+\paragraph{Virus theory:} a virus is a self-modifying and self-propagating code. \\
+It is \underline{impossible} to build the perfect virus detector:
+\begin{itemize}
+\item let $P(x)$ be the perfect detection program, and $x$ a program to be analyzed
+\item let $V$ be a virus that at some point executes $P(V)$
+	\begin{description}
+	\item[$P(V)=$true]
+	$\rightarrow V$ is considered a virus
+	$\rightarrow V$ halts 
+	$\rightarrow V$ does not propagate
+	$\rightarrow V$ is not a virus
+	\item[$P(V)=$false]
+	$\rightarrow V$ is not considered a virus
+	$\rightarrow V$ spreads
+	$\rightarrow V$ is a virus
+	\end{description}
+\end{itemize}
+\end{description}
+\paragraph{Malicious Code Lifecycle}
+reproduce $\rightarrow$ infect $\rightarrow$ stay hidden $\rightarrow$ \underline{run payload}
+\subparagraph{Reproductionn} The more the virus reproduces, the more likely it is for it to be detected. Need to identify a suitable propagation vector (social engineering, vulnerability exploits). Modern malware \underline{does not self-propagate at all}
+\subparagraph{Infection techniques}
+\begin{description}
+\item[Boot virus] Infect the Master Boot Record of the hard disk
+\item[File infectors]
+	\begin{description}
+	\item[simple overwrite virus] damages original program
+	\item[parasitic virus] append code and modify program entry point
+	\item[(multi)cavity virus] inject code into unused region(s) of the program code
+	\end{description}
+\item[Macro viruses] infect macro functionalities of standard programs (ex: excel)
+\end{description}
+\subsection{Defending}
+\begin{description}
+\item[Patches] worms exploit known vulnerabilities $\rightarrow$ fix the vulnerabilities
+\item[Signatures] develop authmated signatures to verify the programs (and check malicious code)
+\item[Intrusion detection] notice suspicious activity such as fast spreading
+\end{description}
+\subsection{Antiviruses}
+Signature-based: check source code for known issues. Wildcards/RegEX widely used. Heuristics used:
+\begin{itemize}
+\item Code execution starts in the last section
+\item Incorrect header size in executable header
+\item Suspicious code sections name
+\item Patched import address table
+\end{itemize}
+Behaviour detection:
+\begin{itemize}
+\item detect behaviour of known malware
+\item detect common behavious of malwares in general
+\end{itemize}
+\subsection{Virus stealth techniques}
+\begin{description}
+\item[Entry point obfuscation] Get control later, not just after launch
+	\begin{itemize}
+	\item Overwrite important table addresses (ex libraries: make stdio.h point to the virus)
+	\item Overwrite function calls instructions
+	\end{itemize}
+\item[Polymorphism] Change layout with each infection, encrypt the payload using a different key for each infection
+	\begin{itemize}
+	\item Makes signature analysis impossible
+	\item Only encryption routine can be detected
+	\end{itemize}
+\item[Metamorphism] Create different versions of the code that look different but do the same things
+	\begin{itemize}
+	\item Dead code insertion: add NOPs or other unused code 
+	\item Reorder instructions
+	\item \dots
+	\end{itemize}
+\item[Dormant period] Execute malicious behavior only after a certain amount of time
+\item[Event-triggered payload] Execute command on an event (usually receiving a command)
+\item[Anti-virtualization techniques] detect when the code is run in a virtual machine to prevent static analysis
+\item[Encryption/Packing] Encrypt the payload using a small routine, change key at each execution
+	\begin{itemize}
+	\item Compress/Decompress
+	\item Encrypt/Decrypt
+	\item Metamorphic components
+	\item Anti-debugging techniques
+	\item Anti-VM techniques
+	\item Virtualization
+	\end{itemize}
+\item[Rootkits] become a root on the machine, plant a kit to remain/return root. Can be done in userland, kernel-space, BIOS, firmware, virtualization systems... HS this is fucked up
+\end{description}
 
-
+\section{Mobile Security}
+\paragraph{Why are smartphones a good target}
+\begin{itemize}
+\item Always online
+\item Ample computing resources
+\item Plenty of sensible data
+\end{itemize}
+\begin{table}[h]
+\begin{tabular}{|c||c|c|c|}
+\hline
+&Desktop&Android&iOS\\
+\hline\hline
+OS&Win/Linux/Mac&Linux based&Darwin based\\
+\hline
+Processor&x86&ARM/x86/...&ARM\\
+\hline
+Programming language&any&Java/native code&Objective C\\
+\hline
+Accessibility&Open&Open&Closed\\
+\hline
+\end{tabular}
+\caption{Structural differences}
+\end{table}
+\paragraph{iOS security model}
+\begin{itemize}
+\item Code signing checked at execution
+\item Sandboxing with predefined permissions: the kernel uses MAC to restrict access to files and memory space
+\item closed ecosystem $\rightarrow$ App Store is the CA
+\item \textit{Privacy profiles} used to define access control rules. User must confirm at first use. Default deny.
+\item No dynamic code
+\end{itemize}
+\paragraph{Android security model}
+\begin{itemize}
+\item Code signing checked at installation
+\item Sandboxing with explicit permissions: each app is assigned a separate linux user
+\item Open ecosystem (no CA)
+\item Explicit permissions granted by the user at installation
+\item Allow dinamic code
+\end{itemize}
 \end{document}
